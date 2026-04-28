@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # context-circuit-breaker.sh
-# PreToolUse hook: reads context % from the HUD cache (updated every ~3s by the statusLine hook).
-# Blocks tool execution at threshold, writes partial checkpoint, prompts Claude for intent.
+# PreToolUse hook: monitors context usage and blocks tool execution at threshold.
+# Delegates context % reading to get-context-pct.sh (transcript JSONL, no HUD dependency).
 # After /clear, auto-detects the pending restore via a marker file and triggers restore automatically.
 
 set -euo pipefail
@@ -31,17 +31,14 @@ if [ -f "$PENDING_RESTORE_FILE" ]; then
   exit 2
 fi
 
-# Read context % from HUD cache (PreToolUse stdin does not include context_window data)
+# Read context % by delegating to get-context-pct.sh
+# That script reads directly from the transcript JSONL — no HUD dependency.
 TRANSCRIPT_PATH=$(printf '%s' "$STDIN" | jq -r '.transcript_path // ""' 2>/dev/null || echo "")
-CLAUDE_CFG="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"
+GET_PCT_SCRIPT="$(dirname "$0")/get-context-pct.sh"
 CONTEXT_PCT=0
 
-if [ -n "$TRANSCRIPT_PATH" ]; then
-  CACHE_HASH=$(printf '%s' "$TRANSCRIPT_PATH" | shasum -a 256 | cut -c1-64)
-  CACHE_FILE="$CLAUDE_CFG/plugins/claude-hud/context-cache/${CACHE_HASH}.json"
-  if [ -f "$CACHE_FILE" ]; then
-    CONTEXT_PCT=$(jq -r '(.used_percentage // 0) | floor' "$CACHE_FILE" 2>/dev/null || echo "0")
-  fi
+if [ -x "$GET_PCT_SCRIPT" ]; then
+  CONTEXT_PCT=$("$GET_PCT_SCRIPT" "$TRANSCRIPT_PATH" 2>/dev/null || echo "0")
 fi
 
 # Below threshold — allow tool to run
