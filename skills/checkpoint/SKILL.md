@@ -187,6 +187,16 @@ Fill in from conversation history:
 
 Overwrite the partial file with all sections filled. Update frontmatter `status` to `in-progress` (leave `type: auto`).
 
+After writing the completed file, write the pending-restore marker via Bash so the hook
+can auto-restore after /clear. The marker must be written AFTER the checkpoint is complete —
+writing it earlier causes it to fire on this very tool call, skipping intent capture.
+
+```bash
+printf '%s' '{filepath}' > '{checkpoint_dir}/.pending-restore'
+```
+
+Where `{checkpoint_dir}` is `$(dirname '{filepath}')`.
+
 Confirm:
 
 ```

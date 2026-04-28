@@ -129,8 +129,11 @@ ${TOOL_INPUT}
 *(Blockers, gotchas, open questions — Claude completes)*
 CHECKPOINT_EOF
 
-# Write pending-restore marker — detected after /clear to trigger auto-restore on next tool call
-printf '%s' "$CHECKPOINT_FILE" > "$PENDING_RESTORE_FILE"
+# NOTE: pending-restore marker is NOT written here.
+# It is written by the checkpoint skill after /checkpoint auto completes,
+# ensuring the marker only exists when intent has been captured.
+# Writing it here caused the marker to fire on the very next tool call
+# (the /checkpoint auto Skill invocation), skipping intent capture entirely.
 
 # Build the handoff script path — same directory as this hook
 HANDOFF_SCRIPT="$(dirname "$0")/context-handoff.sh"
