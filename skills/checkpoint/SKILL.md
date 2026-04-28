@@ -234,6 +234,16 @@ If no files: "No checkpoints for this project yet. Run `/checkpoint` to save."
 
 Match by number or title fragment if specified; otherwise use most recent. Read the file.
 
+### Step 2b — Detect partial checkpoint
+
+After reading, check if the checkpoint is partial (hook wrote it but Claude never completed it). A partial checkpoint has placeholder text in the Intent section — look for the literal string `*(Why were you running`.
+
+If partial: **do not present it as a completed restore.** Instead, run the auto-complete flow first:
+- Tell the user: "This checkpoint is partial — the circuit breaker fired before intent was captured. Completing it now from conversation context."
+- Fill in all sections (Intent, Goal, Handoff Brief, Discovered Facts, Remaining Work, Other Pending Work, Notes) using whatever context is available
+- If context is sparse (fresh session with no history), fill what you can and mark unknowns explicitly
+- Overwrite the file, then continue to Step 3 with the completed checkpoint
+
 ### Step 3 — Present
 
 ```
